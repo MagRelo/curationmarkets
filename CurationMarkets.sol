@@ -91,7 +91,6 @@ contract ContinuousToken is ERC20Token {
         }
     }
 
-
     function withdraw(uint256 _amountToWithdraw) returns (bool) {
         if(_amountToWithdraw > 0 && balances[msg.sender] >= _amountToWithdraw) {
             //determine how much you can leave with.
@@ -117,25 +116,33 @@ contract ContinuousToken is ERC20Token {
 
 
     /*
-    These functions can control network dynamics. Currently they both rely on one input: totalSupply
-    But these functions can be arbitrarily complex and they can be dynamic.
+    These functions can be designed to influence network dynamics.
+    Currently they are both based on totalSupply but these functions
+    can be arbitrarily complex and dynamic.
 
     Some interesting parameters:
+
+    - Attributes of the token/trade
+    -- # tokens in trasaction
+    -- age of token (vesting)
+    -- age of token (demmurage/appreciation)
+
+    - Activity of the sender wallet:
+    -- recent trade activity (e.g., discourage dumping)
+
     - Network activity:
     -- trading volume - 90 day, 30 day, 3 day, 6 hour, etc.
     -- # of unique wallets/changes in uniques wallets
     -- # of trading connections, richness
 
-    - Activity of the sender wallet:
-    -- recent trade activity
-
-    - Attributes of the token
-    -- age of token (vesting)
-    -- age of token (demmurage/appreciation)
-
     - Outside factors:
     -- imported config files
     -- oracles
+
+    These parameters could be combined in interesting ways to create different
+    incentives at different points in the group's lifecycle. For example, when
+    the totalSupply is low we could encourage unique connections. As the totalSupply grows
+    we could transition the incentives toward holding tokens, or whatever.
 
     */
 
