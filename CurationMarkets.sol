@@ -18,7 +18,9 @@ contract ContinuousToken is ERC20Token {
     uint public constant MAX_UINT = (2**256) - 1;
 
     uint256 baseCost = 100000000000000; //100000000000000 wei 0.0001 ether
-    uint256 public costPerToken = 0;
+
+    uint256 public buyPrice = 0;
+    uint256 public sellPrice = 0;
 
     uint256 public totalEverMinted;
     uint256 public totalEverWithdrawn;
@@ -53,14 +55,6 @@ contract ContinuousToken is ERC20Token {
       return s;
     }
 
-    function updateCostOfToken(uint256 _supply) internal {
-        //from protocol design:
-        //costOfCoupon = (BaseCost + BaseCost*(1.000001618^AvailableSupply)+BaseCost*AvailableSupply/1000)
-        //totalSupply == AvailableSupply
-        costPerToken = baseCost+fracExp(baseCost, 618046, _supply, 2)+baseCost*_supply/1000;
-        LogCostOfTokenUpdate(costPerToken);
-    }
-
     //mint
     function mint(uint256 _amountToMint) payable returns (bool) {
         //balance of msg.sender increases if paid right amount according to protocol
@@ -71,8 +65,8 @@ contract ContinuousToken is ERC20Token {
             uint256 totalCost = 0;
             //for loop to determine cost at each point.
             for(uint i = 0; i < _amountToMint; i+=1) {
-                if(totalCost + costPerToken <= msg.value) {
-                    totalCost += costPerToken;
+                if(totalCost + buyPrice <= msg.value) {
+                    totalCost += buyPrice;
                     totalMinted += 1;
                     updateCostOfToken((totalSupply+i));
                 } else {
@@ -97,10 +91,11 @@ contract ContinuousToken is ERC20Token {
         }
     }
 
+
     function withdraw(uint256 _amountToWithdraw) returns (bool) {
         if(_amountToWithdraw > 0 && balances[msg.sender] >= _amountToWithdraw) {
             //determine how much you can leave with.
-            uint256 reward = _amountToWithdraw * poolBalance/totalSupply; //rounding?
+            uint256 reward = _amountToWithdraw * sellPrice; //rounding?
             msg.sender.transfer(reward);
             balances[msg.sender] -= _amountToWithdraw;
             totalSupply -= _amountToWithdraw;
@@ -111,6 +106,51 @@ contract ContinuousToken is ERC20Token {
             throw;
         }
     }
+
+    function updateCostOfToken(uint256 _supply) internal {
+
+        buyPrice = calulateBuyPrice(_supply);
+        sellPrice = calulateSellPrice();
+
+        LogCostOfTokenUpdate(buyPrice);
+    }
+
+
+    /*
+    These functions can control network dynamics. Currently they both rely on one input: totalSupply
+    But these functions can be arbitrarily complex and they can be dynamic.
+
+    Some interesting parameters:
+    - Network activity:
+    -- trading volume - 90 day, 30 day, 3 day, 6 hour, etc.
+    -- # of unique wallets/changes in uniques wallets
+    -- # of trading connections, richness
+
+    - Activity of the sender wallet:
+    -- recent trade activity
+
+    - Attributes of the token
+    -- age of token (vesting)
+    -- age of token (demmurage/appreciation)
+
+    - Outside factors:
+    -- imported config files
+    -- oracles
+
+    */
+
+    function calulateBuyPrice(uint256 _supply) internal {
+        //from protocol design:
+        //costOfCoupon = (BaseCost + BaseCost*(1.000001618^AvailableSupply)+BaseCost*AvailableSupply/1000)
+        //totalSupply == AvailableSupply
+        return baseCost+fracExp(baseCost, 618046, _supply, 2)+baseCost*_supply/1000;
+    }
+
+
+    function calulateSellPrice() internal {
+        return poolBalance/totalSupply;
+    }
+
 
     event LogMint(uint256 amountMinted, uint256 totalCost);
     event LogWithdraw(uint256 amountWithdrawn, uint256 reward);
