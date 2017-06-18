@@ -119,8 +119,21 @@ contract ContinuousToken is ERC20Token {
     These functions can be designed to influence network dynamics.
     Currently they are both based on totalSupply but these functions
     can be arbitrarily complex and dynamic.
+    */
 
-    Some interesting parameters:
+    function calulateBuyPrice(uint256 _supply) internal {
+        //from protocol design:
+        //costOfCoupon = (BaseCost + BaseCost*(1.000001618^AvailableSupply)+BaseCost*AvailableSupply/1000)
+        //totalSupply == AvailableSupply
+        return baseCost+fracExp(baseCost, 618046, _supply, 2)+baseCost*_supply/1000;
+    }
+
+    function calulateSellPrice() internal {
+        return poolBalance/totalSupply;
+    }
+
+    /*
+    Some  other interesting parameters:
 
     - Attributes of the token/trade
     -- # tokens in trasaction
@@ -144,19 +157,8 @@ contract ContinuousToken is ERC20Token {
     the totalSupply is low we could encourage unique connections. As the totalSupply grows
     we could transition the incentives toward holding tokens, or whatever.
 
+    
     */
-
-    function calulateBuyPrice(uint256 _supply) internal {
-        //from protocol design:
-        //costOfCoupon = (BaseCost + BaseCost*(1.000001618^AvailableSupply)+BaseCost*AvailableSupply/1000)
-        //totalSupply == AvailableSupply
-        return baseCost+fracExp(baseCost, 618046, _supply, 2)+baseCost*_supply/1000;
-    }
-
-
-    function calulateSellPrice() internal {
-        return poolBalance/totalSupply;
-    }
 
 
     event LogMint(uint256 amountMinted, uint256 totalCost);
